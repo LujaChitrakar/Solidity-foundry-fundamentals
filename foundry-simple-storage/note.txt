@@ -1,0 +1,15 @@
+to run/deploy
+forge script srcipt/DeploySimpleStorage.s.sol --rpc-url $RPC_URL --broadcast --private-key $PRIVATE_KEY   
+
+to save value from .env
+source .env
+
+to publish an transaction by calling a function
+cast send 0x5FbDB2315678afecb367f032d93F642f64180aa3 "store(uint256)" 123 --rpc-url $RPC_URL --private-key $PRIVATE_KEY 
+
+to perform a call in an account without transaction
+ cast call 0x5FbDB2315678afecb367f032d93F642f64180aa3 "retrieve()" 123 --rpc-url $RPC_URL --private-key $PRIVATE_KEY   
+
+
+ convert hex to dec
+ cast --to-base 0x000000000000000000000000000000000000000000000000000000000000007b dec   
