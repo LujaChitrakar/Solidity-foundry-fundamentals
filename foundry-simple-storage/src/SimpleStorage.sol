@@ -7,7 +7,7 @@ contract SimpleStorage {
     // uint256 favoriteNumber=88; //variable unit=integer
 
     // every variable is intialized to 0 if no value is given
-    uint256 public myFavoriteNumber; //0 (storage variable)
+    uint256 public myFavoriteNumber = 0; //0 (storage variable)
 
     // a function that modifies the variable myfavorite number
     function store(uint256 _favoriteNumber) public virtual {
