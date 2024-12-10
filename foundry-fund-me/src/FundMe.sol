@@ -3,9 +3,10 @@
 pragma solidity ^0.8.18;
 
 import {PriceConverter} from "./PriceConverter.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 // custom error
-error NotOwner();
+error FundMe__NotOwner();
 
 contract FundMe {
     // use constant for variables that dont change later on and save gas
@@ -18,14 +19,16 @@ contract FundMe {
     // immutable is like constant but less restricted the value can be changedd before execution but not after execution (only once and in constructor only)
     // i_ so that immutable can be identified
     address public immutable i_owner;
+    address[] public funders;
 
+    AggregatorV3Interface private s_priceFeed;
     // constructor that is called rightaway after the contract is deployed
-    constructor() {
+    constructor(address priceFeed) {
         i_owner = msg.sender;
+        s_priceFeed = AggregatorV3Interface(priceFeed);
     }
 
     //a variable array named funders that logs who sent us eth
-    address[] public funders;
 
     mapping(address funder => uint256 amountFunded)
         public addressToAmountFunded;
@@ -35,7 +38,7 @@ contract FundMe {
         //payable=should be payed , here eth should be greater than 1e18wei or 1 eth
 
         require(
-            msg.value.getConversionRate() >= MINIMUM_USD,
+            msg.value.getConversionRate(s_priceFeed) >= MINIMUM_USD,
             "didnt send enough ETH"
         ); //msg.value=no. of wei sent with the message || 1e18wei = 1ETH
         funders.push(msg.sender);
@@ -77,6 +80,11 @@ contract FundMe {
         require(CallSucess, "Call not successful");
     }
 
+    // getsversion of AggregatorV3 interface
+    function getVersion() public view returns (uint256) {
+        return s_priceFeed.version();
+    }
+
     // modifier that can be added to a function
     modifier OnlyOwner() {
         // uses more gas
@@ -85,7 +93,7 @@ contract FundMe {
         // uses less gas due to no require of ""
         // revert is like return but without ""
         if (msg.sender != i_owner) {
-            revert NotOwner();
+            revert FundMe__NotOwner();
         }
 
         //   first execute modifier then everything else
