@@ -13,6 +13,7 @@ contract FundMeTest is Test {
 
     uint256 constant SEND_VALUE = 0.1 ether;
     uint256 constant STARTING_BALANCE = 10 ether;
+    uint256 constant GAS_PRICE = 1;
 
     function setUp() external {
         DeployFundMe deployFundMe = new DeployFundMe();
@@ -62,8 +63,16 @@ contract FundMeTest is Test {
         uint256 startingFundMeBalance = address(fundMe).balance;
 
         // Action
+
+        uint256 gasStart = gasleft(); //gasleft() is a inbuilt function that tell us how much gas is left in tx call. As we spend a little more gas than the total gas actually spent. || gasleft before the txn  EG:1000
+
+        // txGasPrice() = simulate spending of gas as by default in ANVIL gas spent is set to 0
+        vm.txGasPrice(GAS_PRICE);
         vm.prank(fundMe.getOwner());
-        fundMe.Withdraw();
+        fundMe.Withdraw(); //uses gas
+
+        uint256 gasEnd = gasleft(); //gas left after the txn  EG:800
+        uint256 gasUsed = (gasStart - gasEnd) * tx.gasprice;
 
         // Assert
         uint256 endingOwnerBalance = fundMe.getOwner().balance;
@@ -106,10 +115,10 @@ contract FundMeTest is Test {
             vm.stopPrank();
 
             // ASSERT
-            assertEq(address(fundMe).balance == 0);
+            assertEq(address(fundMe).balance, 0);
             assertEq(
-                startingOwnerBalance + startingFundMeBalance ==
-                    fundMe.getOwner().balance
+                startingOwnerBalance + startingFundMeBalance,
+                fundMe.getOwner().balance
             );
         }
     }
