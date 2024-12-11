@@ -8,20 +8,115 @@ import {FundMe} from "../src/FundMe.sol";
 contract FundMeTest is Test {
     FundMe fundMe;
 
+    // create a custom address user
+    address USER = makeAddr("user");
+
+    uint256 constant SEND_VALUE = 0.1 ether;
+    uint256 constant STARTING_BALANCE = 10 ether;
+
     function setUp() external {
         DeployFundMe deployFundMe = new DeployFundMe();
         fundMe = deployFundMe.run();
+
+        // send some money/funds to the custom address USER
+        vm.deal(USER, STARTING_BALANCE);
     }
 
-    function testMinimumUSDIsFive() public {
+    function testMinimumUSDIsFive() public view {
         assertEq(fundMe.MINIMUM_USD(), 5e18);
     }
 
-    function testOwnerIsMsgSender() public {
-        assertEq(fundMe.i_owner(), msg.sender);
+    function testOwnerIsMsgSender() public view {
+        assertEq(fundMe.getOwner(), msg.sender);
     }
 
-    function testPriceFeedversion() public {
+    function testPriceFeedversion() public view {
         assertEq(fundMe.getVersion(), 4);
+    }
+
+    function testFundFailsWithoutEnoughEth() public {
+        // after vm.expectRevert(); the next line should revert/fail for the test to pass
+        vm.expectRevert();
+        fundMe.Funds(); //sends 0ETH which is less than 5 eth that is required
+    }
+
+    function testFundUpdatesFundedDataStructure() public funded {
+        uint256 amountFunded = fundMe.getAddressToAmountFunded(USER);
+        assertEq(amountFunded, SEND_VALUE);
+    }
+
+    function testAddsFunderToArrayOfFunders() public funded {
+        address funder = fundMe.getFunder(0);
+        assertEq(funder, USER);
+    }
+
+    function testOnlyOwnerCanWithdraw() public funded {
+        vm.expectRevert();
+        vm.prank(USER); //it says the next tx will be sent by USER
+        fundMe.Withdraw();
+    }
+
+    function testWithdrawWithASingleFunder() public funded {
+        // Arrange
+        uint256 startingOwnerBalance = fundMe.getOwner().balance;
+        uint256 startingFundMeBalance = address(fundMe).balance;
+
+        // Action
+        vm.prank(fundMe.getOwner());
+        fundMe.Withdraw();
+
+        // Assert
+        uint256 endingOwnerBalance = fundMe.getOwner().balance;
+        uint256 endingFundMeBalance = address(fundMe).balance;
+
+        assertEq(endingFundMeBalance, 0);
+        assertEq(
+            endingOwnerBalance,
+            startingFundMeBalance + startingOwnerBalance
+        );
+    }
+
+    function testWithdrawFromMultipleFunders() public funded {
+        // ARRANGE
+
+        // uint160 because uint160 is the exact no of bytes for an address
+        uint160 numberOfFunders = 10;
+        uint160 startingFundersIndex = 2;
+
+        for (uint160 i = startingFundersIndex; i < numberOfFunders; i++) {
+            // steps
+            // vm.prank = to create new addresses in a loop
+            // vm.deal = to deal the address with some money
+            // fund the fundMe
+
+            // hoax is the combination of both prank and deal i.e; it creates a mock address and add some funds/money to it
+            // address(i) generates new address for each loop
+            hoax(address(i), SEND_VALUE);
+            fundMe.Funds{value: SEND_VALUE}();
+
+            uint256 startingOwnerBalance = fundMe.getOwner().balance;
+            uint256 startingFundMeBalance = address(fundMe).balance;
+
+            // ACT
+
+            // vm.prank(fundMe.getOwner()); OR
+            // this says like startBroadcast. Here it means from start to finish its pretending to be Owner
+            vm.startPrank(fundMe.getOwner());
+            fundMe.Withdraw();
+            vm.stopPrank();
+
+            // ASSERT
+            assertEq(address(fundMe).balance == 0);
+            assertEq(
+                startingOwnerBalance + startingFundMeBalance ==
+                    fundMe.getOwner().balance
+            );
+        }
+    }
+
+    modifier funded() {
+        vm.prank(USER); //it says the next tx will be sent by USER
+        fundMe.Funds{value: SEND_VALUE}();
+        _;
     }
 }

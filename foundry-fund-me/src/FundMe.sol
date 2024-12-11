@@ -18,8 +18,7 @@ contract FundMe {
 
     // immutable is like constant but less restricted the value can be changedd before execution but not after execution (only once and in constructor only)
     // i_ so that immutable can be identified
-    address public immutable i_owner;
-    address[] public funders;
+    address private immutable i_owner;
 
     AggregatorV3Interface private s_priceFeed;
     // constructor that is called rightaway after the contract is deployed
@@ -29,9 +28,10 @@ contract FundMe {
     }
 
     //a variable array named funders that logs who sent us eth
+    // storage variable should be named with s_
+    address[] private s_funders;
 
-    mapping(address funder => uint256 amountFunded)
-        public addressToAmountFunded;
+    mapping(address => uint256) private s_addressToAmountFunded;
 
     // allows users to send $ && have a minimum $ sent
     function Funds() public payable {
@@ -41,9 +41,9 @@ contract FundMe {
             msg.value.getConversionRate(s_priceFeed) >= MINIMUM_USD,
             "didnt send enough ETH"
         ); //msg.value=no. of wei sent with the message || 1e18wei = 1ETH
-        funders.push(msg.sender);
-        addressToAmountFunded[msg.sender] =
-            addressToAmountFunded[msg.sender] +
+        s_funders.push(msg.sender);
+        s_addressToAmountFunded[msg.sender] =
+            s_addressToAmountFunded[msg.sender] +
             msg.value;
     }
 
@@ -53,14 +53,14 @@ contract FundMe {
 
         for (
             uint256 funderIndex = 0;
-            funderIndex < funders.length;
+            funderIndex < s_funders.length;
             funderIndex++
         ) {
-            address funder = funders[funderIndex];
-            addressToAmountFunded[funder] = 0;
+            address funder = s_funders[funderIndex];
+            s_addressToAmountFunded[funder] = 0;
         }
         // resets the array
-        funders = new address[](0);
+        s_funders = new address[](0);
 
         // transfer eth
         // msg.sender is of  type address
@@ -108,5 +108,20 @@ contract FundMe {
 
     fallback() external payable {
         Funds();
+    }
+
+    // view
+    function getAddressToAmountFunded(
+        address fundingAddress
+    ) external view returns (uint256) {
+        return s_addressToAmountFunded[fundingAddress];
+    }
+
+    function getFunder(uint256 index) external view returns (address) {
+        return s_funders[index];
+    }
+
+    function getOwner() external view returns (address) {
+        return i_owner;
     }
 }
