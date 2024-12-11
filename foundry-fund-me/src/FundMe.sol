@@ -51,9 +51,13 @@ contract FundMe {
         // can only be accessed by owner
         // require(msg.sender==owner,"Must be owner");
 
+        // to make it cheaper DO NOT READ?WRITE from storage ; s_ = from storage
+        // to better optimize this loop, make a variable for s_funders.length and read only once instead of the whole loop
+        uint256 fundersLength = s_funders.length;
         for (
             uint256 funderIndex = 0;
-            funderIndex < s_funders.length;
+            // funderIndex < s_funders.length;
+            funderIndex < fundersLength;
             funderIndex++
         ) {
             address funder = s_funders[funderIndex];
@@ -100,7 +104,6 @@ contract FundMe {
         _;
     }
 
-    // look into Fallback examples
     // it takes place when the function in the contract is exucuted through other sources
     receive() external payable {
         Funds();
