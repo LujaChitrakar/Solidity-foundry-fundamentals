@@ -3,8 +3,15 @@ pragma solidity ^0.8.18;
 
 import {Script} from "forge-std/Script.sol";
 
-contract HelperConfig {
+import {MockV3Aggregator} from "../test/mocks/MockV3Aggregator.sol";
+
+// it is script to have access to the vm
+contract HelperConfig is Script {
     NetworkConfig public activeNetworkConfig;
+
+    // constants for Anvil
+    uint8 public constant DECIMALS = 8;
+    int256 public constant INITIAL_PRICE = 2000e8;
 
     struct NetworkConfig {
         address priceFeed;
@@ -33,6 +40,22 @@ contract HelperConfig {
         });
         return polygonConfig;
     }
+    // Anvil is the local server
+    function getAnvilEthConfig() public returns (NetworkConfig memory) {
+        if (activeNetworkConfig.priceFeed != address(0)) {
+            return activeNetworkConfig;
+        }
 
-    function getAnvilEthConfig() public pure returns (NetworkConfig memory) {}
+        vm.startBroadcast();
+        MockV3Aggregator mockPriceFeed = new MockV3Aggregator(
+            DECIMALS,
+            INITIAL_PRICE
+        );
+        vm.stopBroadcast();
+
+        NetworkConfig memory AnvilConfig = NetworkConfig({
+            priceFeed: address(mockPriceFeed)
+        });
+        return AnvilConfig;
+    }
 }
