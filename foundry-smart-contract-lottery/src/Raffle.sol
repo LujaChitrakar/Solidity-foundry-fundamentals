@@ -15,6 +15,7 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 contract Raffle is VRFConsumerBaseV2Plus {
     // custom error ||  name of function in the front for more readability
     error Raffle__SendMoreToEnterRaffle();
+    error Raffle__TransferFailed();
 
     uint16 constant REQUEST_CONFIRMATIONS = 3;
     uint32 constant NUM_WORDS = 1;
@@ -27,6 +28,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     uint32 private immutable i_callbackGasLimit;
     uint256 private immutable s_lastTimeStamp;
     address payable[] private s_players;
+    address private s_recentWinner;
 
     event RaffleEntered(address indexed player);
 
@@ -82,10 +84,19 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
     }
 
+    // overriding the function of file in chainlink
     function fulfillRandomWords(
         uint256 requestId,
         uint256[] calldata randomWords
-    ) internal override {}
+    ) internal override {
+        uint256 indexOfWinner = randomWords[0] % s_players.length;
+        address payable recentWinner = s_players[indexOfWinner];
+        s_recentWinner = recentWinner;
+        (bool success, ) = recentWinner.call{value: address(this).balance}("");
+        if (!success) {
+            revert Raffle__TransferFailed();
+        }
+    }
 
     // getter Function
     function getEntranceFee() external view returns (uint256) {
