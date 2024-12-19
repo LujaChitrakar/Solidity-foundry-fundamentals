@@ -55,6 +55,7 @@ contract HelperConfig is Script, CodeConstants {
 
     function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
         // check if we set an active network config
+        // check function
         if (localNetworkConfig.vrfCoordinator != address(0)) {
             return localNetworkConfig;
         }
