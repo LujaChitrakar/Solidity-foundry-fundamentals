@@ -6,6 +6,7 @@ import {Raffle} from "src/Raffle.sol";
 
 contract DeployRaffle is Script {
     function run() public {}
+    // for deployment
 
     // function deployContract() public returns (Raffle, helperConfig) {}
 }
