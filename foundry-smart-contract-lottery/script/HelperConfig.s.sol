@@ -9,10 +9,10 @@ abstract contract CodeConstants {
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 
     // VRF Mock Values
-    uint256 public MOCK_BASE_FEE = 0.25 ether;
-    uint256 public MOCK_GAS_PRICE_LINK = 1e9;
+    uint96 public MOCK_BASE_FEE = 0.25 ether;
+    uint96 public MOCK_GAS_PRICE_LINK = 1e9;
     // LINK or ETH price'
-    uint256 public MOCK_WEI_PER_UNIT_LINK = 4e15;
+    int256 public MOCK_WEI_PER_UNIT_LINK = 4e15;
 }
 
 contract HelperConfig is Script, CodeConstants {
@@ -42,15 +42,15 @@ contract HelperConfig is Script, CodeConstants {
         if (networkConfigs[chainId].vrfCoordinator != address(0)) {
             return networkConfigs[chainId];
         } else if (chainId == LOCAL_CHAIN_ID) {
-            // get or create anvilETH CONFIG
+             return getOrCreateAnvilEthConfig();
         } else {
             revert HelperConfig__InvalidChainId();
         }
     }
 
-function getConfig() public returns(NetworkConfig memory){
-    return getConfigByChainId(block.chainId);
-}
+    function getConfig() public returns(NetworkConfig memory){
+        return getConfigByChainId(block.chainid);
+    }
 
     function getSepoliaEthConfig() public pure returns (NetworkConfig memory) {
         return
