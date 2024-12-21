@@ -21,6 +21,9 @@ contract RaffleTest is Test {
     address public PLAYER = makeAddr("player");
     uint256 public constant STARTING_PLAYER_BALANCE = 10 ether;
 
+    event RaffleEntered(address indexed player);
+    event WinnerPicked(address indexed winner);
+
     function setUp() external {
         DeployRaffle deployer = new DeployRaffle();
         (raffle, helperConfig) = deployer.deployContract();
@@ -65,5 +68,38 @@ contract RaffleTest is Test {
         // assert
         address playerRecorder = raffle.getPlayer(0);
         assert(playerRecorder == PLAYER);
+    }
+
+    // test Entering raffle emit events
+    function testEnteringRaffleEmitEvents() public {
+        // arrange
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
+        // act
+        // our emit has only one parameter in the event so check if that topic is true. Other are false cause there are no other parameter
+        vm.expectEmit(true, false, false, false, address(raffle));
+        emit RaffleEntered(PLAYER);
+        // assert
+        raffle.enterRaffle{value: entranceFee}();
+    }
+
+    // test players are not allowed to enter when raffle state is calculating
+    function testDontAllowPlayersToEnterWhileRaffleIsCalculating() public {
+        // arrange
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
+        raffle.enterRaffle{value: entranceFee}();
+
+        // makes sure that timeHasPassed= true i.e, enough time has passed
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        raffle.performUpKeep("");
+        // act
+        vm.expectRevert(Raffle.Raffle__RaffleNotOpen.selector);
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
+        raffle.enterRaffle{value: entranceFee}();
+        // assert
     }
 }
