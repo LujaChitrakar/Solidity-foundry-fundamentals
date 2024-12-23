@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {DeployRaffle} from "script/DeployRaffle.s.sol";
 import {Raffle} from "src/Raffle.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 contract RaffleTest is Test {
     Raffle public raffle;
@@ -43,6 +44,8 @@ contract RaffleTest is Test {
             "VRF Coordinator is zero address!"
         );
     }
+
+    /*RAFFLE TESTS */
 
     // test if raffle is initialized as open
     function testRaffleInitializesInOpenState() public view {
@@ -103,6 +106,8 @@ contract RaffleTest is Test {
         // assert
     }
 
+    /*CHECKUPKEEP */
+
     // Test checkupKeep should return false if it has no balance
     function testCheckUpKeepReturnsFalseIfItHasNoBalance() public {
         // arrange
@@ -134,5 +139,90 @@ contract RaffleTest is Test {
 
         // assert
         assert(!upKeepNeeded);
+    }
+
+    // test checkupkeep returns returns false if enough time has not passed
+    function testcheckUpKeepReturnsFalseIfEnoughTimeHasNotPassed() public {
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
+        raffle.enterRaffle{value: entranceFee}();
+
+        // act
+        (bool upKeepNeeded, ) = raffle.checkUpKeep("");
+
+        assert(!upKeepNeeded);
+    }
+
+    /* PERFORMUPKEEP TESTS*/
+
+    // test performUpKeep can only run if checkupkeep is true
+    function testPerformUpKeepCanOnlyRunIfCheckUpKeepIsTrue() public {
+        // arrange
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
+        raffle.enterRaffle{value: entranceFee}();
+
+        // makes sure that timeHasPassed= true i.e, enough time has passed
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        //    act/assert
+        raffle.performUpKeep("");
+    }
+
+    // test PerformUpKeep reverts if checkUpKeep is false
+    function testPerformUpKeepRevertsIfCheckUpKeepIsFalse() public {
+        // arrange
+        uint256 currentBalance = 0;
+        uint256 numOfPlayers = 0;
+        Raffle.RaffleState rState = raffle.getRaffleState();
+
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
+        raffle.enterRaffle{value: entranceFee}();
+        currentBalance = currentBalance + entranceFee;
+        numOfPlayers = 1;
+
+        // act/assert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Raffle.Raffle__UpKeepNotNeeded.selector,
+                currentBalance,
+                numOfPlayers,
+                rState
+            )
+        );
+        raffle.performUpKeep("");
+    }
+
+    /*get data from emited events in our tests */
+
+    modifier raffleEntered() {
+        // arrange
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
+        raffle.enterRaffle{value: entranceFee}();
+
+        // makes sure that timeHasPassed= true i.e, enough time has passed
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        _;
+    }
+
+    // test performUpkeep updates rafflestate and emits request ID and contains raffleEntered
+    function testPerformUpKeepUpdatesRaffleStateAndEmitsRequestId()
+        public
+        raffleEntered
+    {
+        // act
+        vm.recordLogs();
+        raffle.performUpKeep("");
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+
+        // assert
+        Raffle.RaffleState raffleState = raffle.getRaffleState();
+        assert(uint256(requestId) > 0);
+        assert(uint256(raffleState) == 1);
     }
 }
