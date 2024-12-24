@@ -6,6 +6,7 @@ import {DeployRaffle} from "script/DeployRaffle.s.sol";
 import {Raffle} from "src/Raffle.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract RaffleTest is Test {
     Raffle public raffle;
@@ -224,5 +225,19 @@ contract RaffleTest is Test {
         Raffle.RaffleState raffleState = raffle.getRaffleState();
         assert(uint256(requestId) > 0);
         assert(uint256(raffleState) == 1);
+    }
+
+    /* FullFill randomwords */
+
+    // Test Fulfill RandomWords Can Only Be Called After PerformUpKeep and uses fuzz testing to test many different times using different randomWords || the amount of test depends on fuzz runs defined.
+    function testFulfillRandomWordsCanOnlyBeCalledAfterPerformUpKeep(
+        uint256 randomRequestId
+    ) public raffleEntered {
+        //  arrange/act/assert
+        vm.expectRevert(VRFCoordinatorV2_5Mock.InvalidRequest.selector);
+        VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(
+            randomRequestId,
+            address(raffle)
+        );
     }
 }
