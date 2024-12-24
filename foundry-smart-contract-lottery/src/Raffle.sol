@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.19;
 
+import {console} from "forge-std/Script.sol";
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
@@ -148,7 +149,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
     ) internal override {
         // checks
         //  requires if haru etc || check if it is eligible
-
+        uint256 newRequestId = requestId;
+        console.log(newRequestId);
         // Effect (Internal Contract State)
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWinner];
