@@ -248,6 +248,9 @@ contract RaffleTest is Test, CodeConstants {
         );
     }
 
+function test{
+    
+}
     // test fulfill randomWords picks the winner and resets the timestamp and sends the money to the winner
     function testFulfillRandomWordsPicksWinnerResetsAndSendsMoney()
         public
