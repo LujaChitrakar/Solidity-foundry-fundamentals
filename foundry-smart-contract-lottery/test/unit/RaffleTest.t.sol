@@ -25,7 +25,7 @@ contract RaffleTest is Test, CodeConstants {
 
     event RaffleEntered(address indexed player);
     event WinnerPicked(address indexed winner);
-
+    // setUp function
     function setUp() external {
         DeployRaffle deployer = new DeployRaffle();
         (raffle, helperConfig) = deployer.deployContract();
